@@ -1,0 +1,5 @@
+# Example config file.
+
+foo = 42
+id = [5, 10, 200]
+mode = ["normal", "crazy"]
