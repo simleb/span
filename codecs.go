@@ -11,6 +11,15 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+// A Codec encodes and decodes config files.
+type Codec interface {
+	Encode(w io.Writer, conf Config) error
+	Decode(path string, conf *Config) error
+}
+
+// codecs is a map of file extensions to Codecs.
+var codecs = map[string]Codec{}
+
 func init() {
 	// register codecs
 	codecs[".toml"] = TOML{}

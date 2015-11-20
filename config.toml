@@ -1,5 +1,13 @@
-# Example config file.
+# This is an example config file. Sample command:
+# span -r output.dir -b width,height "config/{simulation.mode}/{width}x{height}_{size|%03d}.toml" config.toml
 
-foo = 42
-id = [5, 10, 200]
-mode = ["normal", "crazy"]
+id = 42
+size = [5, 10, 200]
+width = [640, 800]
+height = [480, 600]
+
+[simulation]
+	mode = ["normal", "crazy"]
+
+[output]
+	dir = "data/{width}x{height}_{size|%03d}_{simulation.mode}{id}.dat"
