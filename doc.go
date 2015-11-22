@@ -35,7 +35,7 @@
 //
 // Usage
 //
-//	span [-r varA] [-b var1,var2[,varN ...]] output_file_template input_file
+//	span [-r var] [-b var1,var2[,varN ...]] output_file_template input_file
 //
 // Example
 //

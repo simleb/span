@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
+	"text/scanner"
 	"text/template"
 )
 
@@ -13,14 +16,23 @@ type Key []string
 
 // MakeKey parses a string into a Key.
 // TODO: handle quoted subkeys
-func MakeKey(s string) Key {
-	return Key(strings.Split(s, "."))
+func MakeKey(s string) (Key, error) {
+	key, err := ParseKey(s)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
 }
 
 // String returns the string representation of a Key.
 // TODO: handle quoted subkeys
 func (k Key) String() string {
-	return strings.Join([]string(k), ".")
+	var b bytes.Buffer
+	fmt.Fprintf(&b, "%q", k[0])
+	for i := 1; i < len(k); i++ {
+		fmt.Fprintf(&b, ".%q", k[i])
+	}
+	return b.String()
 }
 
 // Equals tests if two keys are equal.
@@ -51,13 +63,16 @@ func (ks KeySet) String() string {
 // Set parses a string into a KeySet.
 // TODO: handle quoted subkeys
 func (ks *KeySet) Set(s string) error {
-	k := MakeKey(s)
-	for _, v := range *ks {
-		if v.Equals(k) {
+	key, err := MakeKey(s)
+	if err != nil {
+		return err
+	}
+	for _, k := range *ks {
+		if k.Equals(key) {
 			return nil
 		}
 	}
-	*ks = append(*ks, k)
+	*ks = append(*ks, key)
 	return nil
 }
 
@@ -78,11 +93,14 @@ func (kss *KeySetSet) Set(s string) error {
 	keys := strings.Split(s, ",")
 	var ks KeySet
 	for _, s := range keys {
-		k := MakeKey(s)
+		key, err := MakeKey(s)
+		if err != nil {
+			return err
+		}
 		for _, ks := range *kss {
 			for _, v := range ks {
-				if v.Equals(k) {
-					return fmt.Errorf("variable %q is already bound", k)
+				if v.Equals(key) {
+					return fmt.Errorf("variable %q is already bound", key)
 				}
 			}
 		}
@@ -176,10 +194,18 @@ var fmtPattern = regexp.MustCompile(`\{([^|}]+)\|([^}]+)\}`)
 func ParseOutputPath(path string) (*template.Template, KeySet, error) {
 	var expand KeySet
 	for _, v := range varPattern.FindAllStringSubmatch(path, -1) {
-		expand = append(expand, MakeKey(v[1]))
+		key, err := MakeKey(v[1])
+		if err != nil {
+			return nil, nil, err
+		}
+		expand = append(expand, key)
 	}
 	for _, v := range fmtPattern.FindAllStringSubmatch(path, -1) {
-		expand = append(expand, MakeKey(v[1]))
+		key, err := MakeKey(v[1])
+		if err != nil {
+			return nil, nil, err
+		}
+		expand = append(expand, key)
 	}
 	out, err := ParseTemplate(path)
 	if err != nil {
@@ -194,11 +220,46 @@ func ParseTemplate(s string) (*template.Template, error) {
 	s = fmtPattern.ReplaceAllString(s, "{{get . `$1` | printf `$2`}}")
 	tpl := template.New("Render variable")
 	tpl = tpl.Funcs(template.FuncMap{"get": func(c Config, s string) interface{} {
-		return c.Get(MakeKey(s))
+		key, err := MakeKey(s)
+		if err != nil {
+			panic(err)
+		}
+		return c.Get(key)
 	}})
 	out, err := tpl.Parse(s)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+// ParseKey parses a string of dot separated sections into a Key.
+func ParseKey(s string) (Key, error) {
+	sc := new(scanner.Scanner).Init(strings.NewReader(s))
+	sc.Mode = scanner.ScanIdents | scanner.ScanStrings | scanner.ScanInts
+	var k Key
+	for {
+		// scan section
+		switch sc.Scan() {
+		case scanner.String:
+			u, _ := strconv.Unquote(sc.TokenText())
+			if len(u) == 0 {
+				return nil, fmt.Errorf("invalid key %q", s)
+			}
+			k = append(k, u)
+		case scanner.Ident, scanner.Int:
+			k = append(k, sc.TokenText())
+		default:
+			return nil, fmt.Errorf("invalid key %q", s)
+		}
+		// scan separator
+		switch sc.Scan() {
+		case '.':
+			continue
+		case scanner.EOF:
+			return k, nil
+		default:
+			return nil, fmt.Errorf("invalid separator in key %q", s)
+		}
+	}
 }
