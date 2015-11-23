@@ -14,26 +14,43 @@ import (
 // A Codec encodes and decodes config files.
 type Codec interface {
 	Encode(w io.Writer, conf Config) error
-	Decode(path string, conf *Config) error
+	Decode(r io.Reader, conf *Config) error
 }
 
 // codecs is a map of file extensions to Codecs.
-var codecs = map[string]Codec{}
-
-func init() {
-	// register codecs
-	codecs[".toml"] = TOML{}
-	codecs[".json"] = JSON{}
+var codecs = map[string]Codec{
+	".toml": TOML{},
+	".json": JSON{},
 }
 
-// FindCodec finds a codec by extension.
-func FindCodec(path string) (Codec, error) {
+// Encode encodes a Config to a file according to its extension.
+func Encode(path string, conf Config) error {
 	ext := strings.ToLower(filepath.Ext(path))
 	codec, ok := codecs[ext]
 	if !ok {
-		return nil, fmt.Errorf("unsupported file format %q", ext)
+		return fmt.Errorf("unsupported file format %q", ext)
 	}
-	return codec, nil
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	return codec.Encode(file, conf)
+}
+
+// Decode decodes a Config from a file according to its extension.
+func Decode(path string, conf *Config) error {
+	ext := strings.ToLower(filepath.Ext(path))
+	codec, ok := codecs[ext]
+	if !ok {
+		return fmt.Errorf("unsupported file format %q", ext)
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	return codec.Decode(file, conf)
 }
 
 // TOML is a codec for the TOML format.
@@ -45,8 +62,8 @@ func (TOML) Encode(w io.Writer, conf Config) error {
 }
 
 // Decode reads a TOML config file.
-func (TOML) Decode(path string, conf *Config) error {
-	_, err := toml.DecodeFile(path, conf)
+func (TOML) Decode(r io.Reader, conf *Config) error {
+	_, err := toml.DecodeReader(r, conf)
 	return err
 }
 
@@ -59,11 +76,6 @@ func (JSON) Encode(w io.Writer, conf Config) error {
 }
 
 // Decode reads a JSON config file.
-func (JSON) Decode(path string, conf *Config) error {
-	file, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	return json.NewDecoder(file).Decode(conf)
+func (JSON) Decode(r io.Reader, conf *Config) error {
+	return json.NewDecoder(r).Decode(conf)
 }

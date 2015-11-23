@@ -23,11 +23,7 @@ func main() {
 
 	// load input config file
 	var conf Config
-	codec, err := FindCodec(input)
-	if err != nil {
-		Fatal(err)
-	}
-	if err := codec.Decode(input, &conf); err != nil {
+	if err := Decode(input, &conf); err != nil {
 		Fatal(err)
 	}
 
@@ -107,18 +103,9 @@ func WriteConfig(out *template.Template, conf Config, render KeySet) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
 
 	// encode output file
-	codec, err := FindCodec(path)
-	if err != nil {
-		return err
-	}
-	if err := codec.Encode(file, conf); err != nil {
+	if err := Encode(path, conf); err != nil {
 		return err
 	}
 
