@@ -15,17 +15,18 @@ import (
 type Key []string
 
 // MakeKey parses a string into a Key.
-// TODO: handle quoted subkeys
 func MakeKey(s string) (Key, error) {
-	key, err := ParseKey(s)
+	ks, err := ParseKeySet(s)
 	if err != nil {
 		return nil, err
 	}
-	return key, nil
+	if len(ks) > 1 {
+		return nil, fmt.Errorf("too many keys in %q", s)
+	}
+	return ks[0], nil
 }
 
 // String returns the string representation of a Key.
-// TODO: handle quoted subkeys
 func (k Key) String() string {
 	var b bytes.Buffer
 	fmt.Fprintf(&b, "%q", k[0])
@@ -53,15 +54,14 @@ type KeySet []Key
 
 // String returns the string representation of a KeySet.
 func (ks KeySet) String() string {
-	var keys []string
-	for _, k := range ks {
-		keys = append(keys, k.String())
+	keys := make([]string, len(ks))
+	for i, k := range ks {
+		keys[i] = k.String()
 	}
 	return strings.Join(keys, ",")
 }
 
 // Set parses a string into a KeySet.
-// TODO: handle quoted subkeys
 func (ks *KeySet) Set(s string) error {
 	key, err := MakeKey(s)
 	if err != nil {
@@ -81,30 +81,27 @@ type KeySetSet []KeySet
 
 // String returns the string representation of a KeySetSet.
 func (kss KeySetSet) String() string {
-	var s []string
-	for _, ks := range kss {
-		s = append(s, ks.String())
+	s := make([]string, len(kss))
+	for i, ks := range kss {
+		s[i] = ks.String()
 	}
 	return strings.Join(s, " ")
 }
 
 // Set parses a string into a KeySetSet.
 func (kss *KeySetSet) Set(s string) error {
-	keys := strings.Split(s, ",")
-	var ks KeySet
-	for _, s := range keys {
-		key, err := MakeKey(s)
-		if err != nil {
-			return err
-		}
-		for _, ks := range *kss {
-			for _, v := range ks {
-				if v.Equals(key) {
-					return fmt.Errorf("variable %q is already bound", key)
+	ks, err := ParseKeySet(s)
+	if err != nil {
+		return err
+	}
+	for _, k := range ks {
+		for _, pks := range *kss {
+			for _, pk := range pks {
+				if pk.Equals(k) {
+					return fmt.Errorf("variable %q is already bound", k)
 				}
 			}
 		}
-		ks.Set(s)
 	}
 	*kss = append(*kss, ks)
 	return nil
@@ -233,33 +230,38 @@ func ParseTemplate(s string) (*template.Template, error) {
 	return out, nil
 }
 
-// ParseKey parses a string of dot separated sections into a Key.
-func ParseKey(s string) (Key, error) {
+// ParseKeySet parses a string of comma separated keys
+// made of dot separated sections into a KeySet.
+func ParseKeySet(s string) (KeySet, error) {
 	sc := new(scanner.Scanner).Init(strings.NewReader(s))
 	sc.Mode = scanner.ScanIdents | scanner.ScanStrings | scanner.ScanInts
 	var k Key
+	var ks KeySet
 	for {
 		// scan section
 		switch sc.Scan() {
 		case scanner.String:
 			u, _ := strconv.Unquote(sc.TokenText())
 			if len(u) == 0 {
-				return nil, fmt.Errorf("invalid key %q", s)
+				return nil, fmt.Errorf("part of key missing in %q", s)
 			}
 			k = append(k, u)
 		case scanner.Ident, scanner.Int:
 			k = append(k, sc.TokenText())
 		default:
-			return nil, fmt.Errorf("invalid key %q", s)
+			return nil, fmt.Errorf("bad formatting in %q", s)
 		}
 		// scan separator
 		switch sc.Scan() {
 		case '.':
 			continue
+		case ',':
+			ks = append(ks, k)
+			k = nil
 		case scanner.EOF:
-			return k, nil
+			return append(ks, k), nil
 		default:
-			return nil, fmt.Errorf("invalid separator in key %q", s)
+			return nil, fmt.Errorf("invalid separator in %q", s)
 		}
 	}
 }

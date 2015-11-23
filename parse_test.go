@@ -33,6 +33,15 @@ var validKeys = map[string]Key{
 	`"🙂"."😐"."☹️"`: Key{`🙂`, `😐`, `☹️`},
 }
 
+var validKeySets = map[string]KeySet{
+	`a`:                      KeySet{Key{`a`}},
+	`a,b`:                    KeySet{Key{`a`}, Key{`b`}},
+	`a,b,c`:                  KeySet{Key{`a`}, Key{`b`}, Key{`c`}},
+	` a , b `:                KeySet{Key{`a`}, Key{`b`}},
+	`a.b,c `:                 KeySet{Key{`a`, `b`}, Key{`c`}},
+	`"a b".ab."-ab-",φ."'q"`: KeySet{Key{`a b`, `ab`, `-ab-`}, Key{`φ`, `'q`}},
+}
+
 var invalidKeys = []string{
 	``,
 	`  `,
@@ -53,20 +62,53 @@ var invalidKeys = []string{
 	// `"a`
 }
 
+var invalidKeySets = []string{
+	``,
+	`  `,
+	`,`,
+	`a,`,
+	`,a`,
+	`a,,b`,
+}
+
 func TestParseKey(t *testing.T) {
 	for s, k := range validKeys {
-		key, err := ParseKey(s)
+		keys, err := ParseKeySet(s)
 		if err != nil {
 			t.Fatalf("ParseKey(%q): %s", s, err)
 		}
+		if len(keys) > 1 {
+			t.Fatalf("ParseKey(%q): expected single key, got %d keys", s, len(keys))
+		}
+		key := keys[0]
 		if !key.Equals(k) {
 			t.Fatalf("ParseKey(%q): expected %q, got %q", s, k, key)
 		}
 	}
 	for _, s := range invalidKeys {
-		key, err := ParseKey(s)
+		keys, err := ParseKeySet(s)
 		if err == nil {
-			t.Fatalf("ParseKey(%q): expected error, got %q", s, key)
+			t.Fatalf("ParseKey(%q): expected error, got %q", s, keys)
+		}
+	}
+}
+
+func TestParseKeySet(t *testing.T) {
+	for s, ks := range validKeySets {
+		keys, err := ParseKeySet(s)
+		if err != nil {
+			t.Fatalf("ParseKey(%q): %s", s, err)
+		}
+		for i, key := range keys {
+			if !key.Equals(ks[i]) {
+				t.Fatalf("ParseKey(%q): expected %q, got %q", s, ks, keys)
+			}
+		}
+	}
+	for _, s := range invalidKeySets {
+		keys, err := ParseKeySet(s)
+		if err == nil {
+			t.Fatalf("ParseKey(%q): expected error, got %q", s, keys)
 		}
 	}
 }
