@@ -1,5 +1,9 @@
 # span
 
+[![GoDoc](https://godoc.org/github.com/simleb/span?status.svg)](http://godoc.org/github.com/simleb/span)
+[![Coverage Status](https://img.shields.io/coveralls/simleb/span.svg)](https://coveralls.io/r/simleb/span)
+[![Build Status](https://drone.io/github.com/simleb/span/status.png)](https://drone.io/github.com/simleb/span/latest)
+
 Command `span` generates the cartesian product of config files.
 
 Command `span` can be used when you want to generate multiple config files
