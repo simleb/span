@@ -3,6 +3,7 @@
 [![GoDoc](https://godoc.org/github.com/simleb/span?status.svg)](http://godoc.org/github.com/simleb/span)
 [![Coverage Status](https://img.shields.io/coveralls/simleb/span.svg)](https://coveralls.io/r/simleb/span)
 [![Build Status](https://drone.io/github.com/simleb/span/status.png)](https://drone.io/github.com/simleb/span/latest)
+[![Go Report Card](https://goreportcard.com/badge/github.com/simleb/span)](https://goreportcard.com/report/github.com/simleb/span)
 
 Command `span` generates the cartesian product of config files.
 
