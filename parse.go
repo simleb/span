@@ -11,7 +11,7 @@ import (
 	"text/template"
 )
 
-// A Key is a hierachical path to a variable.
+// A Key is a hierarchical path to a variable.
 type Key []string
 
 // MakeKey parses a string into a Key.

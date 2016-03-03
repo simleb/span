@@ -26,7 +26,7 @@
 //
 // When two or more variables must be expanded together, that is, not as a
 // cartesian product, they can be bound with -b (or --bind) followed by a
-// comma separated list of variable names. The variables reffered to must
+// comma separated list of variable names. The variables referred to must
 // be arrays of the same length. This option can be used multiple times.
 //
 // String variables containing placeholders as described above can be rendered
