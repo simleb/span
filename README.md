@@ -1,7 +1,7 @@
 # span
 
 [![GoDoc](https://godoc.org/github.com/simleb/span?status.svg)](http://godoc.org/github.com/simleb/span)
-[![Coverage Status](https://img.shields.io/coveralls/simleb/span.svg)](https://coveralls.io/r/simleb/span)
+[![Coverage Status](https://coveralls.io/repos/github/simleb/span/badge.svg?branch=master)](https://coveralls.io/github/simleb/span?branch=master)
 [![Build Status](https://drone.io/github.com/simleb/span/status.png)](https://drone.io/github.com/simleb/span/latest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/simleb/span)](https://goreportcard.com/report/github.com/simleb/span)
 
